@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$email]);
 
         if ($stmt->rowCount() === 0) {
-            $errors[] = "لا يوجد حساب بهذا البريد.";
+            $errors[] = "البريد غير موجود";
         } else {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $_SESSION['user_id']  = $user['id'];
                 $_SESSION['fullname'] = $user['fullname'];
-                $msgScript = "<script>window.location.href='index.php';</script>";
+                $msgScript = "<script>window.location.href='dashboard.php';</script>";
             }
         }
     }
@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 						</div>
 					</li>
 				</ul>
-				<a href="login.html" class="login">Login</a>
+				<a href="login.php" class="login">Login</a>
 			</div>
 		</div>
 	</div>
