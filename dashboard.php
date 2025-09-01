@@ -1,5 +1,10 @@
 <!-- @format -->
-
+<?php
+session_start() ; 
+if(isset($_SESSION['user_id'])) {
+    echo $id = $_SESSION['user_id'] ;
+}
+?>
 <!doctype html>
 <html lang="en">
 
