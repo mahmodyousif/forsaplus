@@ -1,8 +1,12 @@
 <!-- @format -->
 <?php
 session_start() ; 
+require "connection.php" ; 
 if(isset($_SESSION['user_id'])) {
-    echo $id = $_SESSION['user_id'] ;
+    $id = $_SESSION['user_id'] ;
+    $stmt = $con->prepare("SELECT * FROM users WHERE id = ?"); 
+    $stmt->execute(array($id)) ; 
+    $row = $stmt->fetch();
 }
 ?>
 <!doctype html>
@@ -87,7 +91,13 @@ if(isset($_SESSION['user_id'])) {
                     </div>
                 </li>
             </ul>
-            <a href="login.html" class="login">Login</a>
+            <?php
+            if(isset($_SESSION['fullname'])) {
+                echo "<a href='logout.php'>logout</a>" ;
+            } else {
+                echo "<a href='login.php'>login</a>" ;
+            }
+            ?>
         </div>
     </div>
 </div>
@@ -102,7 +112,7 @@ if(isset($_SESSION['user_id'])) {
             <div class="profile">
                 <div class="con">
                     <img src="imgs/lana.png" alt="">
-                    <div class="name">lana Wael</div>
+                    <div class="name"><?php echo $row['fullname']?></div>
                     <div class="edit">
                         <img src="imgs/Tuning Square 2.png" alt="">
                         <span>Edit Profile</span>
