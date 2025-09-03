@@ -20,9 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = "اكتب كلمة المرور.";
     }
 
-	
     if (empty($errors)) {
-        $stmt = $con->prepare("SELECT id, fullname, email, password FROM users WHERE email = ? LIMIT 1");
+        $stmt = $con->prepare("SELECT id, fullname, email, password, active FROM users WHERE email = ? LIMIT 1");
         $stmt->execute([$email]);
 
         if ($stmt->rowCount() === 0) {
@@ -32,7 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($user['password'] !== md5($password)) {
                 $errors[] = "كلمة المرور غير صحيحة.";
+            } elseif ((int)$user['active'] === 0) {
+                $errors[] = "الحساب غير مفعل. يرجى التحقق من بريدك.";
             } else {
+                // تسجيل الدخول ناجح
                 $_SESSION['user_id']  = $user['id'];
                 $_SESSION['fullname'] = $user['fullname'];
                 $msgScript = "<script>window.location.href='dashboard.php';</script>";
@@ -171,3 +173,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		<script src="js/main.js"></script>
 	</body>
 </html>
+
