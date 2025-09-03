@@ -1,28 +1,26 @@
 <?php
 require("connection.php");
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require __DIR__ . '/PHPMailer-master/src/Exception.php';
+require __DIR__ . '/PHPMailer-master/src/PHPMailer.php';
+require __DIR__ . '/PHPMailer-master/src/SMTP.php';
+
 if ($_SERVER['REQUEST_METHOD'] == "POST") {
-    $fullname = $_POST['fullname'] ?? '';
-    $age      = $_POST['age'] ?? '';
-    $email    = $_POST['email'] ?? '';
+    $fullname = trim($_POST['fullname'] ?? '');
+    $age      = trim($_POST['age'] ?? '');
+    $email    = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    // بناءً على طلبك الاعتماد على MD5
+    // حسب طلبك: MD5 (يفضّل لاحقاً password_hash)
     $hashedPassword = md5($password);
 
     $errors = [];
-
-    if (empty($fullname)) {
-        $errors[] = "اكتب الاسم الكامل";
-    }
-
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = "البريد الإلكتروني غير صالح.";
-    }
-
-    if (strlen($password) < 8) {
-        $errors[] = "كلمة المرور يجب ألا تقل عن 8 أحرف.";
-    }
+    if ($fullname === '') $errors[] = "اكتب الاسم الكامل";
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = "البريد الإلكتروني غير صالح.";
+    if (strlen($password) < 8) $errors[] = "كلمة المرور يجب ألا تقل عن 8 أحرف.";
 
     if (empty($errors)) {
         // التأكد من عدم تكرار البريد
@@ -32,17 +30,59 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
         if ($stmt->rowCount() != 0) {
             $errors[] = "هذا البريد موجود من قبل";
         } else {
-            // إدخال البيانات
-            $stmt = $con->prepare("INSERT INTO users SET fullname = ?, age = ?, email = ?, password = ?");
+            // إدخال البيانات مع active=0
+            $stmt = $con->prepare("INSERT INTO users (fullname, age, email, password, active) VALUES (?, ?, ?, ?, 0)");
             $stmt->execute([$fullname, $age, $email, $hashedPassword]);
 
-            echo "<script>alert('تم التسجيل بنجاح ✅');</script>";
+            // رابط التفعيل بدون توكن
+            $baseUrl    = "http://localhost/forsaPlus"; // عدّلها لو عندك دومين
+            $verifyLink = $baseUrl . "/verify.php?email=" . urlencode($email);
+
+            try {
+                $mail = new PHPMailer(true);
+                $mail->isSMTP();
+                $mail->Host       = 'smtp.gmail.com';
+                $mail->SMTPAuth   = true;
+                $mail->Username   = 'forsaplus7@gmail.com'; // بريد الإرسال
+                $mail->Password   = 'hvfhbvqhkvmcfnbx';     // App Password
+                $mail->SMTPSecure = 'tls';                   // استخدم TLS بدل SSL
+                $mail->Port       = 587;                     // منفذ TLS
+
+                // حل مؤقت لمشكلة شهادات SSL على XAMPP
+                $mail->SMTPOptions = [
+                    'ssl' => [
+                        'verify_peer'       => false,
+                        'verify_peer_name'  => false,
+                        'allow_self_signed' => true
+                    ]
+                ];
+
+                $mail->CharSet = 'UTF-8';
+                $mail->setFrom('forsaplus7@gmail.com', 'Forsa Plus');
+                $mail->addAddress($email, $fullname);
+
+                $mail->SMTPDebug = 3; // معلومات تفصيلية للـ debug
+
+                $mail->isHTML(true);
+                $mail->Subject = 'تفعيل حسابك في Forsa Plus';
+                $mail->Body    = "
+                    <h2>مرحباً {$fullname}</h2>
+                    <p>اضغط على الرابط أدناه لتفعيل حسابك:</p>
+                    <p><a href='{$verifyLink}'>{$verifyLink}</a></p>
+                ";
+                $mail->AltBody = "مرحباً {$fullname}\nفعّل حسابك من الرابط: {$verifyLink}";
+
+                $mail->send();
+                echo "<script>alert('تم التسجيل ✅. تحقق من بريدك لتفعيل الحساب');</script>";
+
+            } catch (Exception $e) {
+                echo "<script>alert('تم إنشاء الحساب لكن فشل إرسال البريد: " . addslashes($mail->ErrorInfo) . "');</script>";
+            }
         }
     }
 
-    // إذا فيه أخطاء نعرضها في Alert واحد
     if (!empty($errors)) {
-        $allErrors = implode("\\n", $errors); // كل خطأ بسطر جديد
+        $allErrors = implode("\\n", $errors);
         echo "<script>alert('$allErrors');</script>";
     }
 }
@@ -166,3 +206,4 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 </body>
 
 </html>
+
